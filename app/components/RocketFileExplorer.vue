@@ -2,18 +2,19 @@
   Finder-like file explorer (icons or list, breadcrumb, back/forward, search, tags, extra filter, drag and drop, context
   menu, keyboard, quick look). Knows no server: every operation goes through the `adapter` prop (see types/explorer.ts).
   `space`: locks the explorer on one space (no sidebar); otherwise a sidebar lists the spaces.
-  Emits `action` (id, items) for the adapter's application actions of the context menu. Exposes `refresh()`.
+  Emits `action` (id, items) for the adapter's application actions of the context menu. Exposes `refresh()` and `pickFiles()`.
+  `v-model:location` (optional): the location follows the page (e.g. ?folder= in the URL, so links and the back button work).
 -->
 <script setup lang="ts">
 import type { ExplorerAdapter, ExplorerId, ExplorerItem, ExplorerListing, ExplorerLocation, ExplorerTag } from '../types/explorer'
 
-const props = withDefaults(defineProps<{ adapter: ExplorerAdapter, space?: ExplorerId, height?: string, readonly?: boolean }>(), { space: undefined, height: '32rem', readonly: false })
-const emit = defineEmits<{ action: [id: string, items: ExplorerItem[]] }>()
+const props = withDefaults(defineProps<{ adapter: ExplorerAdapter, space?: ExplorerId, height?: string, readonly?: boolean, location?: ExplorerLocation }>(), { space: undefined, height: '32rem', readonly: false, location: undefined })
+const emit = defineEmits<{ 'action': [id: string, items: ExplorerItem[]], 'update:location': [location: ExplorerLocation] }>()
 const locked = computed(() => props.space !== undefined)
 const rootLabel = computed(() => props.adapter.rootLabel ?? 'Documents')
 
 // --- Location and history (back / forward) ---
-const loc = ref<ExplorerLocation>(locked.value ? { space: props.space } : {})
+const loc = ref<ExplorerLocation>(props.location ? { ...props.location } : locked.value ? { space: props.space } : {})
 const history = ref<ExplorerLocation[]>([{ ...loc.value }])
 const hpos = ref(0)
 const canBack = computed(() => hpos.value > 0)
@@ -31,6 +32,14 @@ function go(to: ExplorerLocation) {
   history.value = [...history.value.slice(0, hpos.value + 1), { ...to }]
   hpos.value = history.value.length - 1
 }
+const sameLoc = (a?: ExplorerLocation, b?: ExplorerLocation) => (a?.space ?? null) === (b?.space ?? null) && (a?.folder ?? null) === (b?.folder ?? null)
+// Location driven by the page (v-model:location): report our moves, follow its changes (browser back button…)
+watch(loc, (v) => { if (props.location !== undefined && !sameLoc(v, props.location)) emit('update:location', { ...v }) }, { deep: true })
+watch(() => props.location, (v) => {
+  if (v === undefined || sameLoc(v, loc.value)) return
+  resetFilters()
+  loc.value = { ...v }
+}, { deep: true })
 function back() {
   if (!canBack.value) return
   hpos.value--
@@ -91,7 +100,6 @@ watch(loc, () => {
   notes.value = []
 }, { deep: true })
 onMounted(refresh)
-defineExpose({ refresh })
 
 const tags = ref<ExplorerTag[]>([])
 async function refreshTags() {
@@ -167,7 +175,24 @@ function sizeOf(it: ExplorerItem) {
 }
 const dateFr = (d: string) => new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
 const isImage = (it: ExplorerItem) => ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'].includes(extOf(it))
-const fileUrl = (it: ExplorerItem, download = false) => props.adapter.fileUrl(it, download)
+// Address of a file's content: fileUrl, or resolveFileUrl (fetched content, e.g. behind an Authorization header)
+const objectUrls: string[] = []
+onBeforeUnmount(() => objectUrls.forEach(u => URL.revokeObjectURL(u)))
+async function contentUrl(it: ExplorerItem, download = false): Promise<string> {
+  if (props.adapter.resolveFileUrl) {
+    const url = await props.adapter.resolveFileUrl(it, download)
+    if (url.startsWith('blob:')) objectUrls.push(url)
+    return url
+  }
+  return props.adapter.fileUrl?.(it, download) ?? ''
+}
+async function download(it: ExplorerItem) {
+  try {
+    const url = await contentUrl(it, true)
+    Object.assign(document.createElement('a'), { href: url, download: it.name }).click()
+  }
+  catch (e) { error.value = msg(e) }
+}
 
 // --- Selection, opening ---
 const selected = ref<string[]>([])
@@ -198,16 +223,21 @@ function select(it: ExplorerItem, e: MouseEvent) {
   pane.value?.focus()
 }
 const preview = ref<ExplorerItem | null>(null)
+const previewUrl = ref('')
 const previewOpen = ref(false)
-function showPreview(it: ExplorerItem) {
-  preview.value = it
-  previewOpen.value = true
+async function showPreview(it: ExplorerItem) {
+  try {
+    previewUrl.value = await contentUrl(it)
+    preview.value = it
+    previewOpen.value = true
+  }
+  catch (e) { error.value = msg(e) }
 }
 function open(it: ExplorerItem) {
   if (it.kind === 'space') go({ space: it.id })
   else if (it.kind === 'folder') go({ space: it.spaceId ?? loc.value.space, folder: it.id })
   else if (it.previewable) showPreview(it)
-  else window.location.assign(fileUrl(it, true))
+  else download(it)
 }
 
 // --- Actions ---
@@ -279,6 +309,8 @@ async function upload(files: File[], target: ExplorerLocation = loc.value) {
   uploading.value = false
   await refresh()
 }
+// Exposed: refresh() after a change made outside the explorer; pickFiles() opens the file dialog (e.g. from a shortcut)
+defineExpose({ refresh, pickFiles: () => { if (canWrite.value) fileInput.value?.click() } })
 function onPick(e: Event) {
   const el = e.target as HTMLInputElement
   const files = [...(el.files ?? [])]
@@ -408,7 +440,7 @@ const menuItems = computed(() => {
     [
       { label: 'Ouvrir', icon: 'i-lucide-folder-open', disabled: !one, onSelect: () => one && open(one) },
       { label: 'Aperçu', icon: 'i-lucide-eye', disabled: !one || one.kind !== 'file' || !one.previewable, onSelect: () => one && showPreview(one) },
-      { label: 'Télécharger', icon: 'i-lucide-download', disabled: !one || one.kind !== 'file', onSelect: () => one && window.location.assign(fileUrl(one, true)) },
+      { label: 'Télécharger', icon: 'i-lucide-download', disabled: !one || one.kind !== 'file', onSelect: () => one && download(one) },
     ],
     [
       { label: 'Renommer', icon: 'i-lucide-pencil', disabled: !one || one.kind === 'space' || props.readonly, onSelect: () => one && startRename(one) },
@@ -608,12 +640,12 @@ const menuItems = computed(() => {
     <UModal v-model:open="previewOpen" :title="preview?.name" :ui="{ content: 'sm:max-w-4xl' }">
       <template #body>
         <div v-if="preview" class="flex min-h-64 items-center justify-center">
-          <img v-if="isImage(preview)" :src="fileUrl(preview)" :alt="preview.name" class="max-h-[70vh] max-w-full rounded">
-          <iframe v-else :src="fileUrl(preview)" class="h-[70vh] w-full rounded border border-default" :title="`Aperçu de ${preview.name}`" />
+          <img v-if="isImage(preview)" :src="previewUrl" :alt="preview.name" class="max-h-[70vh] max-w-full rounded">
+          <iframe v-else :src="previewUrl" class="h-[70vh] w-full rounded border border-default" :title="`Aperçu de ${preview.name}`" />
         </div>
       </template>
       <template #footer>
-        <UButton v-if="preview" color="neutral" variant="outline" icon="i-lucide-download" label="Télécharger" :to="fileUrl(preview, true)" external />
+        <UButton v-if="preview" color="neutral" variant="outline" icon="i-lucide-download" label="Télécharger" @click="download(preview)" />
       </template>
     </UModal>
   </div>

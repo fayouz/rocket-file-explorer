@@ -1,6 +1,6 @@
 {
   "name": "@rocket/file-explorer",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Explorateur de fichiers façon Finder, réutilisable (layer Nuxt 4 + Nuxt UI 4) : toute opération passe par un adaptateur fourni par l'application.",
   "private": true,
   "type": "module",

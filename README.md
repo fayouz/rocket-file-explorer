@@ -47,6 +47,7 @@ const adapter: ExplorerAdapter = {
 | `space` | Verrouille l'explorateur sur un espace (pas de barre latérale) |
 | `readonly` | Consultation seule (le serveur doit aussi refuser) |
 | `height` | Hauteur (défaut `32rem`) |
+| `v-model:location` | Emplacement (espace, dossier) suivi par la page, par exemple `?folder=` dans l'URL |
 
 Options de l'adaptateur :
 - **Espaces** : racines de premier niveau (un logement, l'espace personnel…), listés dans la barre latérale. `crossSpaceMove` autorise le déplacement entre espaces.
@@ -54,9 +55,10 @@ Options de l'adaptateur :
 - **Filtre** (`filter`) : une liste déroulante propre à l'application (types de documents…), passée à `list()` en `query.filter`.
 - **Badges** (`item.badges`) : petites étiquettes affichées sur un élément (type, statut…).
 - **Actions** (`actions(items)`) : entrées ajoutées au menu contextuel ; l'explorateur émet `action` (id, éléments) et l'application ouvre sa propre fenêtre.
+- `fileUrl(item, download)` ou `resolveFileUrl(item, download)` : adresse du contenu ; la seconde, asynchrone, sert quand le contenu exige un en-tête `Authorization` (elle renvoie par exemple une adresse `blob:`).
 - `errorMessage(e)` : message lisible des erreurs.
 
-L'explorateur expose `refresh()` (par `ref`).
+L'explorateur expose `refresh()` et `pickFiles()` (par `ref`).
 
 ## Développement
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ExplorerItem } from '../../../app/types/explorer'
+import type { ExplorerItem } from '#file-explorer'
 
 // Bac à sable : l'explorateur sur un adaptateur en mémoire ; une action de l'application (« Changer le type… »).
 const adapter = createMemoryAdapter() as ReturnType<typeof createMemoryAdapter> & { setType(id: string | number, type: string): void }

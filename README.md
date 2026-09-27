@@ -2,11 +2,9 @@
 
 Explorateur de fichiers façon Finder, réutilisable dans toute application Nuxt 4 + Nuxt UI 4 (Rocket Cloud, Rocket PMS, LoussaHousing…) : icônes ou liste, fil d'Ariane, précédent / suivant, recherche, étiquettes, filtre propre à l'application, glisser-déposer (dépôt depuis le bureau et déplacement), menu contextuel, raccourcis clavier, aperçu rapide.
 
-**Il ne connaît aucun serveur** : chaque opération passe par un **adaptateur** fourni par l'application (`@rocket/file-explorer/types`).
+**Il ne connaît aucun serveur** : chaque opération passe par un **adaptateur** fourni par l'application (types : `import type … from '#file-explorer'`).
 
 ## Installation
-
-Dépôt privé : l'installation demande un accès GitHub (clé SSH ou jeton) sur la machine et dans la CI.
 
 ```json
 // package.json
@@ -24,7 +22,7 @@ export default defineNuxtConfig({
 
 ```vue
 <script setup lang="ts">
-import type { ExplorerAdapter } from '@rocket/file-explorer/types'
+import type { ExplorerAdapter } from '#file-explorer'
 
 const adapter: ExplorerAdapter = {
   rootLabel: 'Documents',
@@ -49,6 +47,7 @@ const adapter: ExplorerAdapter = {
 | `space` | Verrouille l'explorateur sur un espace (pas de barre latérale) |
 | `readonly` | Consultation seule (le serveur doit aussi refuser) |
 | `height` | Hauteur (défaut `32rem`) |
+| `v-model:location` | Emplacement (espace, dossier) suivi par la page, par exemple `?folder=` dans l'URL |
 
 Options de l'adaptateur :
 - **Espaces** : racines de premier niveau (un logement, l'espace personnel…), listés dans la barre latérale. `crossSpaceMove` autorise le déplacement entre espaces.
@@ -56,9 +55,12 @@ Options de l'adaptateur :
 - **Filtre** (`filter`) : une liste déroulante propre à l'application (types de documents…), passée à `list()` en `query.filter`.
 - **Badges** (`item.badges`) : petites étiquettes affichées sur un élément (type, statut…).
 - **Actions** (`actions(items)`) : entrées ajoutées au menu contextuel ; l'explorateur émet `action` (id, éléments) et l'application ouvre sa propre fenêtre.
+- `fileUrl(item, download)` ou `resolveFileUrl(item, download)` : adresse du contenu ; la seconde, asynchrone, sert quand le contenu exige un en-tête `Authorization` (elle renvoie par exemple une adresse `blob:`).
 - `errorMessage(e)` : message lisible des erreurs.
 
-L'explorateur expose `refresh()` (par `ref`).
+L'explorateur émet `changed` après chaque modification et expose `refresh()` et `pickFiles()` (par `ref`).
+
+Pour travailler sur le module et une application à la fois : `ROCKET_FILE_EXPLORER_LAYER=/chemin/rocket-file-explorer` si l'application l'étend ainsi (comme `ROCKET_CORE_LAYER`).
 
 ## Développement
 

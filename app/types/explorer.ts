@@ -104,8 +104,13 @@ export interface ExplorerAdapter {
   rename(item: ExplorerItem, name: string): Promise<void>
   move(items: ExplorerItem[], target: ExplorerLocation): Promise<void>
   remove(items: ExplorerItem[]): Promise<void>
-  /** Address of a file's content (quick look, download). */
-  fileUrl(item: ExplorerItem, download?: boolean): string
+  /** Address of a file's content (quick look, download), when the browser can load it as is (session cookie…). */
+  fileUrl?(item: ExplorerItem, download?: boolean): string
+  /**
+   * Instead of fileUrl, when the content needs something a plain address cannot carry (an Authorization header):
+   * returns an address the browser can load, typically a blob: URL of the fetched content (revoked by the explorer).
+   */
+  resolveFileUrl?(item: ExplorerItem, download?: boolean): Promise<string>
   /** Items may move from one space to another (false: refused with a message). */
   crossSpaceMove?: boolean
   tags?: ExplorerTagFeature

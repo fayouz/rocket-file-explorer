@@ -15,4 +15,4 @@ npm run lint && npm run typecheck
 
 ## Pièges connus
 - Cache npm global en erreur de droits sur le Mac de Faez : `npm install --cache <dossier temporaire>`.
-- Dépôt privé : les applications doivent avoir un accès GitHub pour l'installer (CI et images Docker comprises).
+- Dépôt public (Rocket Cloud, public, l'installe) : rien de propre à un client ou à ses données ici.

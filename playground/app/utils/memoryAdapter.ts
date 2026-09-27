@@ -1,4 +1,4 @@
-import type { ExplorerAdapter, ExplorerId, ExplorerItem, ExplorerTag } from '../../../app/types/explorer'
+import type { ExplorerAdapter, ExplorerId, ExplorerItem, ExplorerTag } from '#file-explorer'
 
 interface Node { id: number, space: number, parent: number | null, kind: 'folder' | 'file', name: string, size: number, updatedAt: string, url?: string, type?: string, tags: number[] }
 

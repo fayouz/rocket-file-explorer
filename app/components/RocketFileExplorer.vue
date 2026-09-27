@@ -2,14 +2,15 @@
   Finder-like file explorer (icons or list, breadcrumb, back/forward, search, tags, extra filter, drag and drop, context
   menu, keyboard, quick look). Knows no server: every operation goes through the `adapter` prop (see types/explorer.ts).
   `space`: locks the explorer on one space (no sidebar); otherwise a sidebar lists the spaces.
-  Emits `action` (id, items) for the adapter's application actions of the context menu. Exposes `refresh()` and `pickFiles()`.
+  Emits `action` (id, items) for the adapter's application actions of the context menu, and `changed` after every change.
+  Exposes `refresh()` and `pickFiles()`.
   `v-model:location` (optional): the location follows the page (e.g. ?folder= in the URL, so links and the back button work).
 -->
 <script setup lang="ts">
-import type { ExplorerAdapter, ExplorerId, ExplorerItem, ExplorerListing, ExplorerLocation, ExplorerTag } from '../types/explorer'
+import type { ExplorerAdapter, ExplorerId, ExplorerItem, ExplorerListing, ExplorerLocation, ExplorerTag } from '#file-explorer'
 
 const props = withDefaults(defineProps<{ adapter: ExplorerAdapter, space?: ExplorerId, height?: string, readonly?: boolean, location?: ExplorerLocation }>(), { space: undefined, height: '32rem', readonly: false, location: undefined })
-const emit = defineEmits<{ 'action': [id: string, items: ExplorerItem[]], 'update:location': [location: ExplorerLocation] }>()
+const emit = defineEmits<{ 'action': [id: string, items: ExplorerItem[]], 'update:location': [location: ExplorerLocation], 'changed': [] }>()
 const locked = computed(() => props.space !== undefined)
 const rootLabel = computed(() => props.adapter.rootLabel ?? 'Documents')
 
@@ -241,11 +242,13 @@ function open(it: ExplorerItem) {
 }
 
 // --- Actions ---
+// Every change (create, rename, move, delete, upload, tags) ends here: reload, and tell the page ("changed": quota…)
 async function call(fn: () => Promise<unknown>) {
   error.value = ''
   try { await fn() }
   catch (e) { error.value = msg(e) }
   await refresh()
+  emit('changed')
 }
 const renaming = ref('')
 const renameValue = ref('')
@@ -308,6 +311,7 @@ async function upload(files: File[], target: ExplorerLocation = loc.value) {
   catch (e) { error.value = msg(e) }
   uploading.value = false
   await refresh()
+  emit('changed')
 }
 // Exposed: refresh() after a change made outside the explorer; pickFiles() opens the file dialog (e.g. from a shortcut)
 defineExpose({ refresh, pickFiles: () => { if (canWrite.value) fileInput.value?.click() } })

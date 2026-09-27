@@ -1,0 +1,34 @@
+{
+  "name": "@rocket/file-explorer",
+  "version": "0.1.0",
+  "description": "Explorateur de fichiers façon Finder, réutilisable (layer Nuxt 4 + Nuxt UI 4) : toute opération passe par un adaptateur fourni par l'application.",
+  "private": true,
+  "type": "module",
+  "main": "./nuxt.config.ts",
+  "exports": {
+    ".": "./nuxt.config.ts",
+    "./types": "./app/types/explorer.ts"
+  },
+  "files": ["app", "nuxt.config.ts"],
+  "scripts": {
+    "dev": "nuxt dev playground",
+    "build": "nuxt build playground",
+    "postinstall": "nuxt prepare playground",
+    "typecheck": "nuxt typecheck playground",
+    "lint": "eslint ."
+  },
+  "peerDependencies": {
+    "@nuxt/ui": "^4.0.0",
+    "nuxt": "^4.0.0"
+  },
+  "devDependencies": {
+    "@iconify-json/lucide": "^1.2.136",
+    "@nuxt/eslint": "^1.17.0",
+    "@nuxt/ui": "^4.11.2",
+    "eslint": "^10.11.0",
+    "nuxt": "^4.5.2",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^6.0.3",
+    "vue-tsc": "^3.3.11"
+  }
+}

@@ -6,8 +6,6 @@ Explorateur de fichiers façon Finder, réutilisable dans toute application Nuxt
 
 ## Installation
 
-Dépôt privé : l'installation demande un accès GitHub (clé SSH ou jeton) sur la machine et dans la CI.
-
 ```json
 // package.json
 "dependencies": { "@rocket/file-explorer": "github:fayouz/rocket-file-explorer#semver:^0.1.0" }
